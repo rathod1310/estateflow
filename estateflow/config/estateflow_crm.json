@@ -1,0 +1,12 @@
+{
+ "app_name": "estateflow",
+ "color": "#267a5a",
+ "creation": "2024-01-01 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Module Def",
+ "modified": "2024-01-01 00:00:00.000000",
+ "module_name": "EstateFlow CRM",
+ "name": "EstateFlow CRM",
+ "owner": "Administrator",
+ "restrict_to_domain": ""
+}

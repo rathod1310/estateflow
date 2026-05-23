@@ -1,0 +1,27 @@
+{
+ "actions": [],
+ "autoname": "field:template_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "fields": [
+  {"fieldname": "template_name", "fieldtype": "Data", "label": "Template Name", "reqd": 1, "in_list_view": 1, "unique": 1},
+  {"fieldname": "channel", "fieldtype": "Select", "label": "Channel",
+   "options": "WhatsApp\nSMS\nEmail", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "body", "fieldtype": "Text", "label": "Message Body", "reqd": 1,
+   "description": "Use {{lead_name}}, {{preferred_location}}, {{property_title}}, {{price}}, {{share_link}}"},
+  {"fieldname": "is_default", "fieldtype": "Check", "label": "Is Default", "in_list_view": 1}
+ ],
+ "module": "EstateFlow CRM",
+ "name": "EF Message Template",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "Sales User", "read": 1},
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1}
+ ],
+ "sort_field": "template_name",
+ "sort_order": "ASC",
+ "title_field": "template_name",
+ "track_changes": 0
+}

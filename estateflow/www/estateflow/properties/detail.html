@@ -1,0 +1,174 @@
+---
+title: Property Detail
+login_required: 1
+no_cache: 1
+---
+
+{% from "estateflow/templates/includes/ef_shell.html" import ef_shell %}
+
+{% call ef_shell(prop.title if prop else "Property", "properties") %}
+
+<div class="ef-page">
+
+  {% if not prop %}
+  <div class="ef-error-state">
+    <p>Property not found.</p>
+    <a href="/estateflow/properties" class="ef-btn ef-btn-ghost">← Back</a>
+  </div>
+  {% else %}
+
+  <a href="/estateflow/properties" class="ef-back-link">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    All Properties
+  </a>
+
+  <!-- Image gallery -->
+  {% if prop.images %}
+  <div class="ef-gallery">
+    {% for img in prop.images[:4] %}
+    <div class="ef-gallery-item {% if loop.first %}ef-gallery-primary{% endif %}">
+      <img src="{{ img.image }}" alt="{{ img.caption or prop.title }}" loading="lazy"/>
+    </div>
+    {% endfor %}
+    {% if prop.images|length > 4 %}
+    <div class="ef-gallery-more">+{{ prop.images|length - 4 }} photos</div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="ef-prop-hero-placeholder">
+    <span>🏠</span>
+  </div>
+  {% endif %}
+
+  <!-- Header -->
+  <div class="ef-card">
+    <div class="ef-prop-detail-header">
+      <div>
+        <h1 class="ef-prop-detail-title">{{ prop.title }}</h1>
+        <p class="ef-prop-detail-loc">📍 {{ prop.location }}{% if prop.preferred_area %}, {{ prop.preferred_area }}{% endif %}</p>
+      </div>
+      <span class="ef-avail-badge ef-avail-{{ prop.availability_status | lower }}">{{ prop.availability_status }}</span>
+    </div>
+    <div class="ef-prop-price-row">
+      <span class="ef-prop-price">{{ formatted_price }}</span>
+      <span class="ef-prop-type-badge">{{ prop.property_type }}</span>
+    </div>
+  </div>
+
+  <!-- Key stats -->
+  <div class="ef-card">
+    <div class="ef-prop-stats">
+      {% if prop.bedrooms %}
+      <div class="ef-prop-stat">
+        <span class="ef-prop-stat-val">{{ prop.bedrooms }}</span>
+        <span class="ef-prop-stat-label">Bedrooms</span>
+      </div>
+      {% endif %}
+      {% if prop.bathrooms %}
+      <div class="ef-prop-stat">
+        <span class="ef-prop-stat-val">{{ prop.bathrooms }}</span>
+        <span class="ef-prop-stat-label">Bathrooms</span>
+      </div>
+      {% endif %}
+      {% if prop.size_sqft %}
+      <div class="ef-prop-stat">
+        <span class="ef-prop-stat-val">{{ prop.size_sqft | int }}</span>
+        <span class="ef-prop-stat-label">Sq Ft</span>
+      </div>
+      {% endif %}
+      {% if prop.floor %}
+      <div class="ef-prop-stat">
+        <span class="ef-prop-stat-val">{{ prop.floor }}</span>
+        <span class="ef-prop-stat-label">Floor</span>
+      </div>
+      {% endif %}
+    </div>
+    {% if prop.furnishing_status %}
+    <div class="ef-prop-meta-row">
+      <span>🪑 {{ prop.furnishing_status }}</span>
+      {% if prop.developer_name %}<span>🏗️ {{ prop.developer_name }}</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Description -->
+  {% if prop.description %}
+  <div class="ef-card">
+    <h3 class="ef-card-title">Description</h3>
+    <div class="ef-prop-description">{{ prop.description }}</div>
+  </div>
+  {% endif %}
+
+  <!-- Amenities -->
+  {% if amenities %}
+  <div class="ef-card">
+    <h3 class="ef-card-title">Amenities</h3>
+    <div class="ef-amenities">
+      {% for a in amenities %}
+      <span class="ef-amenity-tag">✓ {{ a }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Share actions -->
+  <div class="ef-card">
+    <h3 class="ef-card-title">Share with a Lead</h3>
+    <div class="ef-field">
+      <label class="ef-label">Select Lead</label>
+      <select id="share-lead-select" class="ef-select">
+        <option value="">Loading leads…</option>
+      </select>
+    </div>
+    <div class="ef-toggle-row" style="margin-top:12px">
+      <button class="ef-toggle ef-toggle-active" data-ch="WhatsApp" onclick="setPropShareChannel(this,'WhatsApp')">💬 WhatsApp</button>
+      <button class="ef-toggle" data-ch="SMS" onclick="setPropShareChannel(this,'SMS')">📱 SMS</button>
+    </div>
+    <button class="ef-btn ef-btn-primary ef-btn-full" style="margin-top:12px" onclick="sharePropWithLead()">
+      Share Property
+    </button>
+    <div class="ef-share-link-row">
+      <span class="ef-share-link-label">Public share link:</span>
+      <input id="share-link-input" class="ef-input ef-input-sm" value="{{ share_url }}" readonly/>
+      <button class="ef-btn ef-btn-ghost ef-btn-sm" onclick="copyShareLink()">Copy</button>
+    </div>
+  </div>
+
+  {% endif %}
+
+</div>
+
+<script>
+const PROP_NAME = "{{ prop.name | e if prop else '' }}";
+let propShareChannel = "WhatsApp";
+
+function setPropShareChannel(btn, ch) {
+  document.querySelectorAll("[data-ch]").forEach(b => b.classList.remove("ef-toggle-active"));
+  btn.classList.add("ef-toggle-active");
+  propShareChannel = ch;
+}
+
+async function loadLeadsForSelect() {
+  const leads = await efCall("estateflow.api.leads.get_leads", { limit: 50 }) || [];
+  const sel = document.getElementById("share-lead-select");
+  sel.innerHTML = `<option value="">Select a lead…</option>` +
+    leads.map(l => `<option value="${l.name}">${efEscape(l.lead_name)} (${l.mobile_no || ""})</option>`).join("");
+}
+
+async function sharePropWithLead() {
+  const leadName = document.getElementById("share-lead-select").value;
+  if (!leadName) { efToast("Select a lead first", "error"); return; }
+  const r = await efCall("estateflow.api.messages.send_property_share",
+    { lead_name: leadName, property_name: PROP_NAME, channel: propShareChannel });
+  efToast(r?.dry_run ? "[DRY-RUN] Would share property" : "✅ Property shared!", r?.dry_run ? "info" : "success");
+}
+
+function copyShareLink() {
+  const val = document.getElementById("share-link-input").value;
+  navigator.clipboard.writeText(val).then(() => efToast("Link copied!", "success"));
+}
+
+loadLeadsForSelect();
+</script>
+
+{% endcall %}

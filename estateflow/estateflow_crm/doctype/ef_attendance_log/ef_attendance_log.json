@@ -1,0 +1,44 @@
+{
+ "actions": [],
+ "autoname": "EF-ATT-.#####",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee_user", "attendance_date", "status", "col_break_1",
+  "check_in_time", "check_in_latitude", "check_in_longitude",
+  "check_out_section",
+  "check_out_time", "check_out_latitude", "check_out_longitude",
+  "notes_section",
+  "selfie", "notes"
+ ],
+ "fields": [
+  {"fieldname": "employee_user", "fieldtype": "Link", "label": "Employee", "options": "User", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "attendance_date", "fieldtype": "Date", "label": "Date", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "status", "fieldtype": "Select", "label": "Status",
+   "options": "Present\nAbsent\nLate\nHalf Day", "default": "Present", "in_list_view": 1},
+  {"fieldname": "col_break_1", "fieldtype": "Column Break"},
+  {"fieldname": "check_in_time", "fieldtype": "Datetime", "label": "Check-in Time", "in_list_view": 1},
+  {"fieldname": "check_in_latitude", "fieldtype": "Float", "label": "Check-in Latitude", "precision": "6"},
+  {"fieldname": "check_in_longitude", "fieldtype": "Float", "label": "Check-in Longitude", "precision": "6"},
+  {"fieldname": "check_out_section", "fieldtype": "Section Break", "label": "Check-out"},
+  {"fieldname": "check_out_time", "fieldtype": "Datetime", "label": "Check-out Time"},
+  {"fieldname": "check_out_latitude", "fieldtype": "Float", "label": "Check-out Latitude", "precision": "6"},
+  {"fieldname": "check_out_longitude", "fieldtype": "Float", "label": "Check-out Longitude", "precision": "6"},
+  {"fieldname": "notes_section", "fieldtype": "Section Break", "label": "Notes"},
+  {"fieldname": "selfie", "fieldtype": "Attach Image", "label": "Selfie (optional)"},
+  {"fieldname": "notes", "fieldtype": "Small Text", "label": "Notes / Visit Summary"}
+ ],
+ "module": "EstateFlow CRM",
+ "name": "EF Attendance Log",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "Sales User", "read": 1, "write": 1, "create": 1},
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1}
+ ],
+ "sort_field": "attendance_date",
+ "sort_order": "DESC",
+ "title_field": "employee_user",
+ "track_changes": 0
+}

@@ -1,0 +1,292 @@
+---
+title: Lead Detail
+login_required: 1
+no_cache: 1
+---
+
+{% from "estateflow/templates/includes/ef_shell.html" import ef_shell %}
+
+{% call ef_shell(lead.lead_name if lead else "Lead", "leads") %}
+
+<div class="ef-page">
+
+  {% if not lead %}
+  <div class="ef-error-state">
+    <p>Lead not found.</p>
+    <a href="/estateflow/leads" class="ef-btn ef-btn-ghost">← Back to Leads</a>
+  </div>
+  {% else %}
+
+  <!-- Back link -->
+  <a href="/estateflow/leads" class="ef-back-link">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    All Leads
+  </a>
+
+  <!-- Header card -->
+  <div class="ef-card ef-lead-header">
+    <div class="ef-lead-avatar" style="background:{{ avatar_color }}">{{ initials }}</div>
+    <div class="ef-lead-info">
+      <h1 class="ef-lead-name">{{ lead.lead_name }}</h1>
+      <p class="ef-lead-phone">{{ lead.mobile_no or lead.phone or "No phone" }}</p>
+      {% if lead.email_id %}<p class="ef-lead-email">{{ lead.email_id }}</p>{% endif %}
+    </div>
+    <a href="/app/crm-lead/{{ lead.name }}" class="ef-icon-btn" title="Edit in Desk">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </a>
+  </div>
+
+  <!-- Status badges -->
+  <div class="ef-card">
+    <div class="ef-badge-row">
+      <span class="ef-status-badge ef-status-{{ lead.status|lower|replace(' ','-') }}" id="lbl-status">{{ lead.status }}</span>
+      {% if lead.ef_lead_temperature %}
+      <span class="ef-temp-badge ef-temp-{{ lead.ef_lead_temperature|lower }}" id="lbl-temp">
+        {% if lead.ef_lead_temperature == "Hot" %}🔥{% elif lead.ef_lead_temperature == "Warm" %}☀️{% else %}🧊{% endif %}
+        {{ lead.ef_lead_temperature }}
+      </span>
+      {% endif %}
+      {% if lead.source %}<span class="ef-source-badge">{{ lead.source }}</span>{% endif %}
+      {% if lead.ef_call_status %}<span class="ef-source-badge">📞 {{ lead.ef_call_status }}</span>{% endif %}
+    </div>
+    <div class="ef-inline-actions">
+      <button class="ef-btn ef-btn-ghost ef-btn-sm" onclick="openStatusSheet()">Change Status</button>
+      <button class="ef-btn ef-btn-ghost ef-btn-sm" onclick="openTempSheet()">Set Temperature</button>
+    </div>
+  </div>
+
+  <!-- One-click action grid -->
+  <div class="ef-card">
+    <div class="ef-action-grid">
+      <button class="ef-action-tile ef-action-call" id="call-btn" onclick="doCall()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.07 3.4 2 2 0 0 1 3.06 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21 16.92z"/></svg>
+        <span>Call</span>
+      </button>
+      <button class="ef-action-tile ef-action-followup" onclick="openFollowupSheet('{{ lead.name|e }}','{{ lead.lead_name|e }}')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Follow-up</span>
+      </button>
+      <button class="ef-action-tile ef-action-share" onclick="openShareSheet('{{ lead.name|e }}','{{ lead.lead_name|e }}')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        <span>Share Prop</span>
+      </button>
+      <button class="ef-action-tile ef-action-bridge" onclick="doBridgeCall()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        <span>Bridge</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Lead details -->
+  <div class="ef-card">
+    <h3 class="ef-card-title">Lead Details</h3>
+    <div class="ef-detail-list">
+      {% if lead.ef_preferred_location %}
+      <div class="ef-detail-row"><span class="ef-detail-icon">📍</span><span>{{ lead.ef_preferred_location }}</span></div>
+      {% endif %}
+      {% if lead.ef_property_type %}
+      <div class="ef-detail-row"><span class="ef-detail-icon">🏠</span><span>{{ lead.ef_property_type }}</span></div>
+      {% endif %}
+      {% if budget_range %}
+      <div class="ef-detail-row"><span class="ef-detail-icon">💰</span><span>{{ budget_range }}</span></div>
+      {% endif %}
+      {% if lead.ef_next_followup %}
+      <div class="ef-detail-row">
+        <span class="ef-detail-icon">📅</span>
+        <span>Follow-up: {{ frappe.utils.format_datetime(lead.ef_next_followup, "d MMM yyyy, h:mm a") }}</span>
+      </div>
+      {% endif %}
+      {% if lead.ef_last_contacted %}
+      <div class="ef-detail-row">
+        <span class="ef-detail-icon">🕐</span>
+        <span class="ef-muted">Last contacted: {{ frappe.utils.format_datetime(lead.ef_last_contacted, "d MMM yyyy") }}</span>
+      </div>
+      {% endif %}
+      {% if lead.lead_owner %}
+      <div class="ef-detail-row"><span class="ef-detail-icon">👤</span><span>{{ lead.lead_owner }}</span></div>
+      {% endif %}
+    </div>
+    {% if lead.notes %}
+    <div class="ef-notes-box">
+      <p class="ef-label-xs">NOTES</p>
+      <p class="ef-notes-text">{{ lead.notes }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Add note form -->
+  <div class="ef-card">
+    <h3 class="ef-card-title">Add Note</h3>
+    <textarea id="new-note" class="ef-input ef-textarea" placeholder="Type a note…"></textarea>
+    <button class="ef-btn ef-btn-primary ef-btn-sm" style="margin-top:8px" onclick="saveNote()">Save Note</button>
+  </div>
+
+  <!-- Recommended properties -->
+  <div class="ef-card">
+    <div class="ef-section-header">
+      <h3 class="ef-card-title">Recommended Properties</h3>
+      <a href="/estateflow/properties" class="ef-section-link">Browse all</a>
+    </div>
+    <div id="recommended-props"><div class="ef-skeleton-card" style="height:60px"></div></div>
+  </div>
+
+  <!-- Activity timeline -->
+  <div class="ef-card">
+    <h3 class="ef-card-title">Activity Timeline</h3>
+    <div id="ef-timeline"><div class="ef-skeleton-card" style="height:80px"></div><div class="ef-skeleton-card" style="height:80px"></div></div>
+  </div>
+
+  {% endif %}
+</div>
+
+<!-- Status picker sheet -->
+<div id="status-sheet" class="ef-sheet" style="display:none">
+  <div class="ef-sheet-overlay" onclick="closeSheet('status-sheet')"></div>
+  <div class="ef-sheet-panel">
+    <div class="ef-sheet-handle"></div>
+    <h3 class="ef-sheet-title" style="padding:16px 16px 8px">Change Status</h3>
+    {% for s in ["New","Contacted","Interested","Site Visit Scheduled","Negotiation","Won","Lost","Not Responding"] %}
+    <button class="ef-status-option" onclick="changeStatus('{{ s }}')">{{ s }}</button>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Temperature picker sheet -->
+<div id="temp-sheet" class="ef-sheet" style="display:none">
+  <div class="ef-sheet-overlay" onclick="closeSheet('temp-sheet')"></div>
+  <div class="ef-sheet-panel">
+    <div class="ef-sheet-handle"></div>
+    <h3 class="ef-sheet-title" style="padding:16px 16px 8px">Set Temperature</h3>
+    <button class="ef-status-option" onclick="changeTemp('Hot')">🔥 Hot</button>
+    <button class="ef-status-option" onclick="changeTemp('Warm')">☀️ Warm</button>
+    <button class="ef-status-option" onclick="changeTemp('Cold')">🧊 Cold</button>
+  </div>
+</div>
+
+<!-- Shared sheets (share + followup) -->
+{% include "estateflow/www/estateflow/leads/_sheets.html" %}
+
+<script>
+var LEAD_NAME = "{{ lead.name|e if lead else '' }}";
+var LEAD_DISPLAY = "{{ lead.lead_name|e if lead else '' }}";
+
+function openStatusSheet()  { openSheet("status-sheet"); }
+function openTempSheet()    { openSheet("temp-sheet"); }
+function openSheet(id)      { document.getElementById(id).style.display = "flex"; document.body.classList.add("ef-sheet-open"); }
+function closeSheet(id)     { document.getElementById(id).style.display = "none"; document.body.classList.remove("ef-sheet-open"); }
+
+async function doCall() {
+  var btn = document.getElementById("call-btn");
+  btn.disabled = true;
+  btn.innerHTML = '<div class="ef-spinner"></div><span>Calling…</span>';
+  var r = await efCall("estateflow.api.calls.direct_call_lead", { lead_name: LEAD_NAME });
+  efToast(
+    r && r.dry_run ? "[DRY-RUN] Would call " + LEAD_DISPLAY : "📞 Calling " + LEAD_DISPLAY + "…",
+    r && r.dry_run ? "info" : "success",
+    r && r.dry_run ? "Configure Twilio in Settings for real calls" : ""
+  );
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.07 3.4 2 2 0 0 1 3.06 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21 16.92z"/></svg><span>Call</span>';
+}
+
+async function doBridgeCall() {
+  efToast("Initiating bridge call…", "info");
+  var r = await efCall("estateflow.api.calls.initiate_bridge_call", { lead_name: LEAD_NAME });
+  efToast(r && r.message ? r.message : (r && r.dry_run ? "[DRY-RUN] Bridge simulated" : "Bridge call initiated"),
+    r && r.dry_run ? "info" : "success");
+}
+
+async function changeStatus(status) {
+  closeSheet("status-sheet");
+  var r = await efCall("estateflow.api.leads.update_lead",
+    { lead_name: LEAD_NAME, data: JSON.stringify({ status: status }) });
+  if (r) {
+    document.getElementById("lbl-status").textContent = status;
+    document.getElementById("lbl-status").className =
+      "ef-status-badge ef-status-" + status.toLowerCase().replace(/\s+/g, "-");
+    efToast("Status → " + status, "success");
+  }
+}
+
+async function changeTemp(temp) {
+  closeSheet("temp-sheet");
+  var icons = { Hot: "🔥", Warm: "☀️", Cold: "🧊" };
+  var r = await efCall("estateflow.api.leads.update_lead",
+    { lead_name: LEAD_NAME, data: JSON.stringify({ ef_lead_temperature: temp }) });
+  if (r) {
+    var lbl = document.getElementById("lbl-temp");
+    if (lbl) { lbl.className = "ef-temp-badge ef-temp-" + temp.toLowerCase(); lbl.textContent = icons[temp] + " " + temp; }
+    efToast(icons[temp] + " Temperature → " + temp, "success");
+  }
+}
+
+async function saveNote() {
+  var note = document.getElementById("new-note").value.trim();
+  if (!note) return;
+  var r = await efCall("estateflow.api.leads.update_lead",
+    { lead_name: LEAD_NAME, data: JSON.stringify({ notes: note }) });
+  if (r) {
+    efToast("Note saved!", "success");
+    document.getElementById("new-note").value = "";
+  }
+}
+
+async function loadTimeline() {
+  var calls = await efCall("estateflow.api.messages.get_lead_calls", { lead_name: LEAD_NAME }) || [];
+  var followups = await efCall("estateflow.api.messages.get_lead_follow_ups", { lead_name: LEAD_NAME }) || [];
+
+  var items = calls.map(function(c){ return { type:"call", time: c.started_at, data: c }; })
+    .concat(followups.map(function(f){ return { type:"followup", time: f.sent_at || f.scheduled_at, data: f }; }));
+  items.sort(function(a,b){ return (b.time||"").localeCompare(a.time||""); });
+
+  var el = document.getElementById("ef-timeline");
+  if (!items.length) { el.innerHTML = efEmpty("No activity yet", "Calls and messages will appear here"); return; }
+
+  var html = '<div class="ef-timeline">';
+  items.forEach(function(item) {
+    if (item.type === "call") {
+      var c = item.data;
+      var dur = c.duration_seconds ? " · " + efDuration(c.duration_seconds) : "";
+      html += '<div class="ef-tl-item"><div class="ef-tl-dot ef-tl-call"></div><div class="ef-tl-body">'
+            + '<p class="ef-tl-title">📞 Call — ' + efEscape(c.call_status || "") + (c.dry_run ? " 🧪" : "") + '</p>'
+            + '<p class="ef-tl-meta">' + efRelTime(c.started_at) + dur + '</p>'
+            + (c.outcome ? '<p class="ef-tl-preview">' + efEscape(c.outcome) + '</p>' : '')
+            + '</div></div>';
+    } else {
+      var f = item.data;
+      html += '<div class="ef-tl-item"><div class="ef-tl-dot ef-tl-msg"></div><div class="ef-tl-body">'
+            + '<p class="ef-tl-title">💬 ' + efEscape(f.channel || "WhatsApp") + ' — ' + efEscape(f.status || "") + (f.dry_run ? " 🧪" : "") + '</p>'
+            + '<p class="ef-tl-time">' + efRelTime(f.sent_at) + '</p>'
+            + (f.message ? '<p class="ef-tl-preview">' + efEscape((f.message||"").slice(0,80)) + '…</p>' : '')
+            + '</div></div>';
+    }
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+async function loadRecommended() {
+  var props = await efCall("estateflow.api.properties.match_properties_for_lead", { lead_name: LEAD_NAME }) || [];
+  var el = document.getElementById("recommended-props");
+  if (!props.length) { el.innerHTML = efEmpty("No matching properties"); return; }
+  el.innerHTML = props.slice(0,3).map(function(p) {
+    return '<div class="ef-rec-prop">'
+      + '<div class="ef-rec-prop-info"><p class="ef-rec-prop-title">' + efEscape(p.title) + '</p>'
+      + '<p class="ef-rec-prop-meta">📍 ' + efEscape(p.location) + ' · ' + efPrice(p.price) + (p.bedrooms ? " · " + p.bedrooms + " BHK" : "") + '</p></div>'
+      + '<button class="ef-btn ef-btn-ghost ef-btn-sm" onclick="quickShareProp(\'' + efEscape(p.name) + '\')">Share</button>'
+      + '</div>';
+  }).join("");
+}
+
+async function quickShareProp(propName) {
+  var r = await efCall("estateflow.api.messages.send_property_share",
+    { lead_name: LEAD_NAME, property_name: propName, channel: "WhatsApp" });
+  efToast(r && r.dry_run ? "[DRY-RUN] Would share property" : "✅ Property shared via WhatsApp",
+    r && r.dry_run ? "info" : "success");
+}
+
+loadTimeline();
+loadRecommended();
+</script>
+
+{% endcall %}

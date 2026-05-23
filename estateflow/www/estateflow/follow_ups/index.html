@@ -1,0 +1,76 @@
+---
+title: Follow-ups
+login_required: 1
+no_cache: 1
+---
+
+{% from "estateflow/templates/includes/ef_shell.html" import ef_shell %}
+
+{% call ef_shell("Follow-ups", "followups") %}
+
+<div class="ef-page">
+
+  <div class="ef-chips">
+    <button class="ef-chip ef-chip-active" onclick="setFUStatus(this,'Pending')">⏳ Pending</button>
+    <button class="ef-chip" onclick="setFUStatus(this,'Sent')">✅ Sent</button>
+    <button class="ef-chip" onclick="setFUStatus(this,'Dry Run')">🧪 Dry-run</button>
+    <button class="ef-chip" onclick="setFUStatus(this,'')">All</button>
+  </div>
+
+  <div class="ef-list-meta">
+    <span id="ef-fu-count" class="ef-count-label">Loading…</span>
+  </div>
+
+  <div id="ef-fu-list">
+    <div class="ef-skeleton-card"></div>
+    <div class="ef-skeleton-card"></div>
+    <div class="ef-skeleton-card"></div>
+  </div>
+
+</div>
+
+<script>
+let fuStatus = "Pending";
+
+async function loadFollowUps() {
+  const filters = {};
+  if (fuStatus) filters.status = fuStatus;
+  const list = await efCall("frappe.client.get_list", {
+    doctype: "EF Follow Up",
+    fields: ["name","lead","lead_name_display","channel","status","message","sent_at","dry_run","agent"],
+    filters: fuStatus ? [["status","=",fuStatus]] : [],
+    order_by: "sent_at desc",
+    limit: 50,
+  }) || [];
+  document.getElementById("ef-fu-count").textContent = `${list.length} follow-up${list.length !== 1 ? "s" : ""}`;
+  const el = document.getElementById("ef-fu-list");
+  if (!list.length) { el.innerHTML = efEmpty("No follow-ups found"); return; }
+  el.innerHTML = list.map(f => `
+    <div class="ef-card ef-fu-card">
+      <div class="ef-fu-header">
+        <div class="ef-fu-meta">
+          <span class="ef-fu-channel">${channelIcon(f.channel)} ${f.channel}</span>
+          <span class="ef-fu-status ef-fu-status-${(f.status||"").toLowerCase().replace(" ","-")}">${f.status}${f.dry_run ? " 🧪" : ""}</span>
+        </div>
+        <a href="/estateflow/leads/${encodeURIComponent(f.lead)}" class="ef-fu-lead">${efEscape(f.lead_name_display || f.lead)}</a>
+      </div>
+      <p class="ef-fu-msg">${efEscape((f.message || "").slice(0, 100))}${(f.message || "").length > 100 ? "…" : ""}</p>
+      <p class="ef-fu-time">${efRelTime(f.sent_at)}</p>
+    </div>`).join("");
+}
+
+function channelIcon(ch) {
+  return { WhatsApp: "💬", SMS: "📱", Email: "✉️", Call: "📞" }[ch] || "💬";
+}
+
+function setFUStatus(btn, status) {
+  document.querySelectorAll(".ef-chip").forEach(b => b.classList.remove("ef-chip-active"));
+  btn.classList.add("ef-chip-active");
+  fuStatus = status;
+  loadFollowUps();
+}
+
+loadFollowUps();
+</script>
+
+{% endcall %}

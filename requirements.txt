@@ -1,0 +1,2 @@
+# Twilio for voice calls and WhatsApp/SMS (optional — dry-run works without it)
+twilio>=8.0.0

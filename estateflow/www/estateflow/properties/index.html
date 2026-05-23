@@ -1,0 +1,120 @@
+---
+title: Properties
+login_required: 1
+no_cache: 1
+---
+
+{% from "estateflow/templates/includes/ef_shell.html" import ef_shell %}
+
+{% call ef_shell("Properties", "properties") %}
+
+<div class="ef-page">
+
+  <div class="ef-toolbar">
+    <div class="ef-search-wrap">
+      <svg class="ef-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="ef-prop-search" type="search" placeholder="Search properties…" class="ef-search-input" oninput="onPropSearch(this.value)"/>
+    </div>
+  </div>
+
+  <!-- Status chips -->
+  <div class="ef-chips">
+    <button class="ef-chip ef-chip-active" onclick="setStatus(this,'Available')">Available</button>
+    <button class="ef-chip" onclick="setStatus(this,'')">All</button>
+    <button class="ef-chip" onclick="setStatus(this,'Hold')">On Hold</button>
+    <button class="ef-chip" onclick="setStatus(this,'Sold')">Sold</button>
+  </div>
+
+  <!-- Type filter -->
+  <div class="ef-chips">
+    <button class="ef-chip ef-chip-sm ef-chip-active" onclick="setType(this,'')">All Types</button>
+    <button class="ef-chip ef-chip-sm" onclick="setType(this,'Apartment')">Apartment</button>
+    <button class="ef-chip ef-chip-sm" onclick="setType(this,'Villa')">Villa</button>
+    <button class="ef-chip ef-chip-sm" onclick="setType(this,'Plot')">Plot</button>
+    <button class="ef-chip ef-chip-sm" onclick="setType(this,'Commercial')">Commercial</button>
+  </div>
+
+  <div class="ef-list-meta">
+    <span id="ef-prop-count" class="ef-count-label">Loading…</span>
+  </div>
+
+  <div id="ef-props-list">
+    <div class="ef-skeleton-card"></div>
+    <div class="ef-skeleton-card"></div>
+    <div class="ef-skeleton-card"></div>
+  </div>
+
+</div>
+
+<script>
+let allProps = [];
+let currentStatus = "Available";
+let currentType = "";
+let propSearch = "";
+
+async function loadProperties() {
+  const params = {};
+  if (currentStatus) params.status = currentStatus;
+  if (currentType) params.property_type = currentType;
+  allProps = await efCall("estateflow.api.properties.get_properties", params) || [];
+  renderProps();
+}
+
+function renderProps() {
+  const filtered = propSearch
+    ? allProps.filter(p =>
+        (p.title || "").toLowerCase().includes(propSearch) ||
+        (p.location || "").toLowerCase().includes(propSearch))
+    : allProps;
+  document.getElementById("ef-prop-count").textContent = `${filtered.length} propert${filtered.length !== 1 ? "ies" : "y"}`;
+  const el = document.getElementById("ef-props-list");
+  if (!filtered.length) { el.innerHTML = efEmpty("No properties found", "Try adjusting your filters"); return; }
+  el.innerHTML = filtered.map(p => renderPropertyCard(p)).join("");
+}
+
+function renderPropertyCard(p) {
+  const statusColor = { Available: "ef-avail-available", Hold: "ef-avail-hold", Sold: "ef-avail-sold", Rented: "ef-avail-rented" }[p.availability_status] || "";
+  return `
+    <a href="/estateflow/properties/${encodeURIComponent(p.name)}" class="ef-card ef-prop-card ef-card-link">
+      <div class="ef-prop-card-top">
+        <div class="ef-prop-card-icon">🏠</div>
+        <div class="ef-prop-card-info">
+          <p class="ef-prop-card-title">${efEscape(p.title)}</p>
+          <p class="ef-prop-card-loc">📍 ${efEscape(p.location)}</p>
+          <p class="ef-prop-card-price">${efPrice(p.price)}${p.bedrooms ? " · " + p.bedrooms + " BHK" : ""}${p.size_sqft ? " · " + Math.round(p.size_sqft) + " sqft" : ""}</p>
+        </div>
+        <span class="ef-avail-badge ${statusColor}">${p.availability_status}</span>
+      </div>
+      <div class="ef-prop-card-footer">
+        <span class="ef-prop-type-badge">${p.property_type}</span>
+        ${p.furnishing_status ? `<span class="ef-prop-type-badge">${p.furnishing_status}</span>` : ""}
+        ${p.developer_name ? `<span class="ef-prop-dev">${efEscape(p.developer_name)}</span>` : ""}
+      </div>
+    </a>`;
+}
+
+function setStatus(btn, status) {
+  document.querySelectorAll(".ef-chips:first-of-type .ef-chip").forEach(b => b.classList.remove("ef-chip-active"));
+  btn.classList.add("ef-chip-active");
+  currentStatus = status;
+  loadProperties();
+}
+
+function setType(btn, type) {
+  document.querySelectorAll(".ef-chips:nth-of-type(2) .ef-chip").forEach(b => b.classList.remove("ef-chip-active"));
+  btn.classList.add("ef-chip-active");
+  currentType = type;
+  loadProperties();
+}
+
+let searchTimer;
+function onPropSearch(val) {
+  propSearch = val.toLowerCase();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(renderProps, 300);
+}
+
+loadProperties();
+</script>
+
+{% endcall %}

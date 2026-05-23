@@ -1,0 +1,103 @@
+[
+ {
+  "doctype": "Custom Field",
+  "name": "CRM Lead-ef_section_estateflow",
+  "module": "EstateFlow CRM",
+  "dt": "CRM Lead",
+  "fieldname": "ef_section_estateflow",
+  "fieldtype": "Section Break",
+  "label": "EstateFlow Fields",
+  "insert_after": "notes"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "CRM Lead-ef_property_type",
+  "module": "EstateFlow CRM",
+  "dt": "CRM Lead",
+  "fieldname": "ef_property_type",
+  "fieldtype": "Select",
+  "label": "Interested Property Type",
+  "options": "\nApartment\nVilla\nPlot\nCommercial\nRental",
+  "insert_after": "ef_section_estateflow",
+  "in_list_view": 0,
+  "in_standard_filter": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "CRM Lead-ef_budget_min",
+  "module": "EstateFlow CRM",
+  "dt": "CRM Lead",
+  "fieldname": "ef_budget_min",
+  "fieldtype": "Currency",
+  "label": "Budget Min (₹)",
+  "insert_after": "ef_property_type"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "CRM Lead-ef_budget_max",
+  "module": "EstateFlow CRM",
+  "dt": "CRM Lead",
+  "fieldname": "ef_budget_max",
+  "fieldtype": "Currency",
+  "label": "Budget Max (₹)",
+  "insert_after": "ef_budget_min"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "CRM Lead-ef_preferred_location",
+  "module": "EstateFlow CRM",
+  "dt": "CRM Lead",
+  "fieldname": "ef_preferred_location",
+  "fieldtype": "Data",
+  "label": "Preferred Location",
+  "insert_after": "ef_budget_max",
+  "in_list_view": 0,
+  "in_standard_filter": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "CRM Lead-ef_lead_temperature",
+  "module": "EstateFlow CRM",
+  "dt": "CRM Lead",
+  "fieldname": "ef_lead_temperature",
+  "fieldtype": "Select",
+  "label": "Lead Temperature",
+  "options": "\nCold\nWarm\nHot",
+  "insert_after": "ef_preferred_location",
+  "in_list_view": 1,
+  "in_standard_filter": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "CRM Lead-ef_next_followup",
+  "module": "EstateFlow CRM",
+  "dt": "CRM Lead",
+  "fieldname": "ef_next_followup",
+  "fieldtype": "Datetime",
+  "label": "Next Follow-up",
+  "insert_after": "ef_lead_temperature"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "CRM Lead-ef_last_contacted",
+  "module": "EstateFlow CRM",
+  "dt": "CRM Lead",
+  "fieldname": "ef_last_contacted",
+  "fieldtype": "Datetime",
+  "label": "Last Contacted",
+  "insert_after": "ef_next_followup",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "CRM Lead-ef_call_status",
+  "module": "EstateFlow CRM",
+  "dt": "CRM Lead",
+  "fieldname": "ef_call_status",
+  "fieldtype": "Select",
+  "label": "Call Status",
+  "options": "\nCall Pending\nCalled\nCall Failed\nCallback Requested",
+  "insert_after": "ef_last_contacted",
+  "in_list_view": 1
+ }
+]

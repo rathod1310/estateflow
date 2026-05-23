@@ -1,0 +1,149 @@
+---
+title: Leads
+login_required: 1
+no_cache: 1
+---
+
+{% from "estateflow/templates/includes/ef_shell.html" import ef_shell %}
+
+{% call ef_shell("Leads", "leads") %}
+
+<div class="ef-page">
+
+  <!-- Toolbar -->
+  <div class="ef-toolbar">
+    <div class="ef-search-wrap">
+      <svg class="ef-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="ef-search" type="search" placeholder="Search leads…" class="ef-search-input" oninput="onSearch(this.value)"/>
+    </div>
+    <button class="ef-icon-btn" id="filter-toggle" onclick="toggleFilters()" title="Filters">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+    </button>
+    <a href="/estateflow/leads/new" class="ef-btn ef-btn-primary ef-btn-icon-only" title="Add Lead">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </a>
+  </div>
+
+  <!-- Temperature chips -->
+  <div class="ef-chips">
+    <button class="ef-chip ef-chip-active" onclick="setTemp(this,'')">All</button>
+    <button class="ef-chip" onclick="setTemp(this,'Hot')">🔥 Hot</button>
+    <button class="ef-chip" onclick="setTemp(this,'Warm')">☀️ Warm</button>
+    <button class="ef-chip" onclick="setTemp(this,'Cold')">🧊 Cold</button>
+  </div>
+
+  <!-- Expandable filters -->
+  <div id="ef-filters" class="ef-filter-panel" style="display:none">
+    <div class="ef-filter-row">
+      <label class="ef-filter-label">Status</label>
+      <select id="filter-status" class="ef-select" onchange="loadLeads()">
+        <option value="">All Statuses</option>
+        <option>New</option><option>Contacted</option><option>Interested</option>
+        <option>Site Visit Scheduled</option><option>Negotiation</option>
+        <option>Won</option><option>Lost</option><option>Not Responding</option>
+      </select>
+    </div>
+    <div class="ef-filter-row">
+      <label class="ef-filter-label">Property</label>
+      <select id="filter-type" class="ef-select" onchange="loadLeads()">
+        <option value="">All Types</option>
+        <option>Apartment</option><option>Villa</option>
+        <option>Plot</option><option>Commercial</option><option>Rental</option>
+      </select>
+    </div>
+    <button class="ef-btn ef-btn-ghost ef-btn-sm" style="margin-top:4px" onclick="clearFilters()">Clear Filters</button>
+  </div>
+
+  <!-- Count -->
+  <div class="ef-list-meta">
+    <span id="ef-lead-count" class="ef-count-label">Loading…</span>
+  </div>
+
+  <!-- Lead list -->
+  <div id="ef-leads-list">
+    <div class="ef-skeleton-card"></div>
+    <div class="ef-skeleton-card"></div>
+    <div class="ef-skeleton-card"></div>
+  </div>
+
+  <div class="ef-load-more-wrap">
+    <button id="ef-load-more" class="ef-btn ef-btn-ghost" onclick="loadMore()" style="display:none">Load more</button>
+  </div>
+
+</div>
+
+<!-- Shared bottom sheets (share + follow-up) -->
+{% include "estateflow/www/estateflow/leads/_sheets.html" %}
+
+<script>
+var allLeads = [];
+var currentStart = 0;
+var currentTemp = "";
+var currentSearch = "";
+
+async function loadLeads(reset) {
+  if (reset === undefined) reset = true;
+  if (reset) { currentStart = 0; allLeads = []; }
+
+  const status = document.getElementById("filter-status").value;
+  const propType = document.getElementById("filter-type").value;
+  const params = { limit: 30, start: currentStart };
+  if (status)      params.status = status;
+  if (currentTemp) params.temperature = currentTemp;
+  if (propType)    params.ef_property_type = propType;
+  if (currentSearch) params.search = currentSearch;
+
+  const leads = await efCall("estateflow.api.leads.get_leads", params);
+  if (leads) {
+    allLeads = reset ? leads : allLeads.concat(leads);
+    renderLeads();
+    document.getElementById("ef-load-more").style.display = leads.length === 30 ? "block" : "none";
+  }
+  document.getElementById("ef-lead-count").textContent =
+    allLeads.length + " lead" + (allLeads.length !== 1 ? "s" : "");
+}
+
+function renderLeads() {
+  var el = document.getElementById("ef-leads-list");
+  if (!allLeads.length) {
+    el.innerHTML = efEmpty("No leads found", "Try adjusting your filters or add a new lead");
+    return;
+  }
+  el.innerHTML = allLeads.map(renderLeadCard).join("");
+}
+
+function loadMore() { currentStart += 30; loadLeads(false); }
+
+function setTemp(btn, temp) {
+  document.querySelectorAll(".ef-chips .ef-chip").forEach(function(b){ b.classList.remove("ef-chip-active"); });
+  btn.classList.add("ef-chip-active");
+  currentTemp = temp;
+  loadLeads();
+}
+
+function toggleFilters() {
+  var el = document.getElementById("ef-filters");
+  var btn = document.getElementById("filter-toggle");
+  var open = el.style.display === "none";
+  el.style.display = open ? "block" : "none";
+  btn.style.background = open ? "var(--brand)" : "";
+  btn.style.color      = open ? "#fff" : "";
+}
+
+function clearFilters() {
+  document.getElementById("filter-status").value = "";
+  document.getElementById("filter-type").value = "";
+  loadLeads();
+}
+
+var searchTimer;
+function onSearch(val) {
+  currentSearch = val;
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(function(){ loadLeads(); }, 350);
+}
+
+loadLeads();
+</script>
+
+{% endcall %}

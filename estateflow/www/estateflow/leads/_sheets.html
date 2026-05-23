@@ -1,0 +1,220 @@
+<!-- ── Property Share Sheet ──────────────────────────────────────────────── -->
+<div id="share-sheet" class="ef-sheet" style="display:none">
+  <div class="ef-sheet-overlay" onclick="closeShareSheet()"></div>
+  <div class="ef-sheet-panel">
+    <div class="ef-sheet-handle"></div>
+    <div class="ef-sheet-header">
+      <div>
+        <h3 class="ef-sheet-title">Share Property</h3>
+        <p class="ef-sheet-sub" id="share-lead-name-lbl"></p>
+      </div>
+      <button onclick="closeShareSheet()" class="ef-icon-btn">✕</button>
+    </div>
+    <div class="ef-sheet-section">
+      <p class="ef-label-xs">SEND VIA</p>
+      <div class="ef-toggle-row">
+        <button class="ef-toggle ef-toggle-active" onclick="setShareChannel(this,'WhatsApp')">💬 WhatsApp</button>
+        <button class="ef-toggle" onclick="setShareChannel(this,'SMS')">📱 SMS</button>
+      </div>
+    </div>
+    <div class="ef-sheet-section ef-sheet-scroll">
+      <p class="ef-label-xs">SELECT PROPERTY</p>
+      <div id="share-props-list"></div>
+    </div>
+    <div class="ef-sheet-footer">
+      <button class="ef-btn ef-btn-primary ef-btn-full" id="share-send-btn" onclick="sendPropertyShare()">
+        Share via <span id="share-channel-label">WhatsApp</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Follow-up Sheet ──────────────────────────────────────────────────── -->
+<div id="followup-sheet" class="ef-sheet" style="display:none">
+  <div class="ef-sheet-overlay" onclick="closeFollowupSheet()"></div>
+  <div class="ef-sheet-panel">
+    <div class="ef-sheet-handle"></div>
+    <div class="ef-sheet-header">
+      <div>
+        <h3 class="ef-sheet-title">Send Follow-up</h3>
+        <p class="ef-sheet-sub" id="fu-lead-name-lbl"></p>
+      </div>
+      <button onclick="closeFollowupSheet()" class="ef-icon-btn">✕</button>
+    </div>
+    <div class="ef-sheet-section">
+      <p class="ef-label-xs">CHANNEL</p>
+      <div class="ef-toggle-row">
+        <button class="ef-toggle ef-toggle-active" onclick="setFUChannel(this,'WhatsApp')">💬 WhatsApp</button>
+        <button class="ef-toggle" onclick="setFUChannel(this,'SMS')">📱 SMS</button>
+        <button class="ef-toggle" onclick="setFUChannel(this,'Email')">✉️ Email</button>
+      </div>
+    </div>
+    <div class="ef-sheet-section">
+      <p class="ef-label-xs">TEMPLATE</p>
+      <div id="fu-template-list"></div>
+    </div>
+    <div class="ef-sheet-section">
+      <p class="ef-label-xs">PREVIEW</p>
+      <div id="fu-preview" class="ef-message-preview">Select a template above…</div>
+    </div>
+    <div class="ef-sheet-footer">
+      <button class="ef-btn ef-btn-primary ef-btn-full" id="fu-send-btn" onclick="sendFollowUp()">Send Message</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Shared sheet state ──────────────────────────────────────────────────── */
+var _shareLeadName   = "";
+var _shareChannel    = "WhatsApp";
+var _selectedProps   = {};   // name -> true
+var _availableProps  = [];
+var _fuLeadName      = "";
+var _fuChannel       = "WhatsApp";
+var _selectedTmpl    = "";
+var _templates       = [];
+
+/* ── Share sheet ─────────────────────────────────────────────────────────── */
+async function openShareSheet(leadName, leadDisplayName) {
+  _shareLeadName = leadName;
+  _selectedProps = {};
+  document.getElementById("share-lead-name-lbl").textContent = "to " + leadDisplayName;
+  document.getElementById("share-sheet").style.display = "flex";
+  document.body.classList.add("ef-sheet-open");
+
+  var list = document.getElementById("share-props-list");
+  list.innerHTML = '<div class="ef-skeleton-card" style="height:60px"></div>';
+
+  _availableProps = await efCall("estateflow.api.properties.get_properties",
+    { status: "Available", limit: 20 }) || [];
+
+  if (!_availableProps.length) { list.innerHTML = efEmpty("No available properties"); return; }
+  list.innerHTML = _availableProps.map(function(p) {
+    return '<button class="ef-prop-item" id="sprop-' + p.name + '" onclick="toggleShareProp(\'' + p.name + '\')">'
+      + '<div class="ef-prop-check" id="spcheck-' + p.name + '">'
+      + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>'
+      + '<div class="ef-prop-info"><p class="ef-prop-title">' + efEscape(p.title) + '</p>'
+      + '<p class="ef-prop-meta">📍 ' + efEscape(p.location) + ' · ' + efPrice(p.price)
+      + (p.bedrooms ? " · " + p.bedrooms + " BHK" : "") + '</p></div></button>';
+  }).join("");
+}
+
+function toggleShareProp(name) {
+  if (_selectedProps[name]) {
+    delete _selectedProps[name];
+    document.getElementById("sprop-" + name).classList.remove("ef-prop-selected");
+  } else {
+    _selectedProps[name] = true;
+    document.getElementById("sprop-" + name).classList.add("ef-prop-selected");
+  }
+}
+
+function setShareChannel(btn, ch) {
+  btn.closest(".ef-toggle-row").querySelectorAll(".ef-toggle").forEach(function(b){
+    b.classList.remove("ef-toggle-active");
+  });
+  btn.classList.add("ef-toggle-active");
+  _shareChannel = ch;
+  document.getElementById("share-channel-label").textContent = ch;
+}
+
+function closeShareSheet() {
+  document.getElementById("share-sheet").style.display = "none";
+  document.body.classList.remove("ef-sheet-open");
+}
+
+async function sendPropertyShare() {
+  var names = Object.keys(_selectedProps);
+  if (!names.length) { efToast("Select at least one property", "error"); return; }
+  var btn = document.getElementById("share-send-btn");
+  btn.disabled = true; btn.textContent = "Sending…";
+  var dryRun = false;
+  for (var i = 0; i < names.length; i++) {
+    var r = await efCall("estateflow.api.messages.send_property_share",
+      { lead_name: _shareLeadName, property_name: names[i], channel: _shareChannel });
+    if (r && r.dry_run) dryRun = true;
+  }
+  closeShareSheet();
+  efToast(
+    dryRun ? "[DRY-RUN] " + names.length + " property detail(s) would be sent"
+           : "✅ " + names.length + " property detail(s) sent",
+    dryRun ? "info" : "success",
+    dryRun ? "Configure WhatsApp credentials in Settings" : ""
+  );
+  btn.disabled = false;
+  btn.innerHTML = 'Share via <span id="share-channel-label">' + _shareChannel + '</span>';
+}
+
+/* ── Follow-up sheet ─────────────────────────────────────────────────────── */
+async function openFollowupSheet(leadName, leadDisplayName) {
+  _fuLeadName = leadName;
+  document.getElementById("fu-lead-name-lbl").textContent = "to " + leadDisplayName;
+  document.getElementById("followup-sheet").style.display = "flex";
+  document.body.classList.add("ef-sheet-open");
+
+  var list = document.getElementById("fu-template-list");
+  list.innerHTML = '<div class="ef-skeleton-card" style="height:48px"></div>';
+
+  _templates = await efCall("estateflow.api.messages.get_templates") || [];
+
+  if (!_templates.length) { list.innerHTML = efEmpty("No templates found"); return; }
+  list.innerHTML = _templates.map(function(t, i) {
+    var name = t.template_name || t.name;
+    return '<button class="ef-tmpl-item ' + (i === 0 ? "ef-tmpl-selected" : "") + '" onclick="selectFUTemplate(this,' + i + ')">'
+      + '<div class="ef-tmpl-radio ' + (i === 0 ? "ef-tmpl-radio-active" : "") + '"></div>'
+      + '<span>' + efEscape(name) + '</span></button>';
+  }).join("");
+
+  if (_templates.length) {
+    _selectedTmpl = _templates[0].template_name || _templates[0].name;
+    updateFUPreview();
+  }
+}
+
+function selectFUTemplate(btn, idx) {
+  document.querySelectorAll("#fu-template-list .ef-tmpl-item").forEach(function(b){
+    b.classList.remove("ef-tmpl-selected");
+    b.querySelector(".ef-tmpl-radio").classList.remove("ef-tmpl-radio-active");
+  });
+  btn.classList.add("ef-tmpl-selected");
+  btn.querySelector(".ef-tmpl-radio").classList.add("ef-tmpl-radio-active");
+  _selectedTmpl = _templates[idx].template_name || _templates[idx].name;
+  updateFUPreview();
+}
+
+function updateFUPreview() {
+  var tmpl = null;
+  for (var i = 0; i < _templates.length; i++) {
+    if ((_templates[i].template_name || _templates[i].name) === _selectedTmpl) { tmpl = _templates[i]; break; }
+  }
+  document.getElementById("fu-preview").textContent = tmpl ? tmpl.body : "";
+}
+
+function setFUChannel(btn, ch) {
+  btn.closest(".ef-toggle-row").querySelectorAll(".ef-toggle").forEach(function(b){
+    b.classList.remove("ef-toggle-active");
+  });
+  btn.classList.add("ef-toggle-active");
+  _fuChannel = ch;
+}
+
+function closeFollowupSheet() {
+  document.getElementById("followup-sheet").style.display = "none";
+  document.body.classList.remove("ef-sheet-open");
+}
+
+async function sendFollowUp() {
+  if (!_selectedTmpl) { efToast("Select a template", "error"); return; }
+  var btn = document.getElementById("fu-send-btn");
+  btn.disabled = true; btn.textContent = "Sending…";
+  var r = await efCall("estateflow.api.messages.send_follow_up",
+    { lead_name: _fuLeadName, template_name: _selectedTmpl, channel: _fuChannel });
+  closeFollowupSheet();
+  efToast(
+    r && r.dry_run ? "[DRY-RUN] Message would be sent" : "✅ Follow-up sent",
+    r && r.dry_run ? "info" : "success",
+    r && r.dry_run ? "Configure WhatsApp credentials in Settings" : ""
+  );
+  btn.disabled = false; btn.textContent = "Send Message";
+}
+</script>

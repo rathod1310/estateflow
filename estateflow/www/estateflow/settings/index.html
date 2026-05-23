@@ -1,0 +1,152 @@
+---
+title: Settings
+login_required: 1
+no_cache: 1
+---
+
+{% from "estateflow/templates/includes/ef_shell.html" import ef_shell %}
+
+{% call ef_shell("Settings", "settings") %}
+
+<div class="ef-page">
+
+  {% if not is_admin %}
+  <div class="ef-card ef-info-card">
+    <p>⚠️ Settings are only available to System Managers.</p>
+  </div>
+  {% else %}
+
+  <div class="ef-page-heading">
+    <h1 class="ef-page-title">Integrations</h1>
+    <p class="ef-page-sub">Configure Twilio, WhatsApp, and webhook settings</p>
+  </div>
+
+  <!-- Dry-run notice -->
+  <div class="ef-card ef-dryrun-notice" id="dryrun-notice" style="display:none">
+    <p>🧪 <strong>Dry-Run Mode Active</strong> — Calls and messages are simulated. Fill in credentials below to go live.</p>
+  </div>
+
+  <!-- Twilio -->
+  <div class="ef-card">
+    <h3 class="ef-card-title">📞 Twilio Voice (Call Bridge)</h3>
+    <div class="ef-form-stack">
+      <div class="ef-field">
+        <label class="ef-label">Account SID</label>
+        <input id="s-twilio-sid" type="text" class="ef-input" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/>
+      </div>
+      <div class="ef-field">
+        <label class="ef-label">Auth Token</label>
+        <input id="s-twilio-token" type="password" class="ef-input" placeholder="••••••••"/>
+      </div>
+      <div class="ef-field">
+        <label class="ef-label">Twilio Phone Number</label>
+        <input id="s-twilio-phone" type="text" class="ef-input" placeholder="+14155552671"/>
+      </div>
+      <div class="ef-field-check">
+        <input type="checkbox" id="s-twilio-dry" class="ef-checkbox" onchange="updateDryRunNotice()"/>
+        <label for="s-twilio-dry" class="ef-check-label">Dry-Run Mode (simulate calls)</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- WhatsApp -->
+  <div class="ef-card">
+    <h3 class="ef-card-title">💬 WhatsApp / SMS (via Twilio)</h3>
+    <div class="ef-form-stack">
+      <div class="ef-field">
+        <label class="ef-label">WhatsApp Sender Number</label>
+        <input id="s-wa-sender" type="text" class="ef-input" placeholder="+14155552671"/>
+      </div>
+      <div class="ef-field-check">
+        <input type="checkbox" id="s-wa-dry" class="ef-checkbox" onchange="updateDryRunNotice()"/>
+        <label for="s-wa-dry" class="ef-check-label">Dry-Run Mode (log messages, don't send)</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Webhook -->
+  <div class="ef-card">
+    <h3 class="ef-card-title">🔗 Lead Intake Webhook</h3>
+    <div class="ef-form-stack">
+      <div class="ef-field">
+        <label class="ef-label">Webhook Secret</label>
+        <input id="s-webhook-secret" type="password" class="ef-input" placeholder="random-secret-key"/>
+      </div>
+      <div class="ef-field">
+        <label class="ef-label">Lead Assignment Mode</label>
+        <select id="s-assign-mode" class="ef-select">
+          <option>Round Robin</option>
+          <option>Manual</option>
+          <option>Least Busy Agent</option>
+        </select>
+      </div>
+    </div>
+    <div class="ef-webhook-url-box">
+      <p class="ef-label-xs">WEBHOOK ENDPOINT</p>
+      <div class="ef-code-row">
+        <code id="webhook-url" class="ef-code">{{ site_url }}/api/method/estateflow.api.leads.intake_webhook</code>
+        <button class="ef-btn ef-btn-ghost ef-btn-sm" onclick="copyWebhook()">Copy</button>
+      </div>
+      <p class="ef-hint">Use this URL in 36 Acre, MagicBricks, Facebook Lead Ads, Zapier, Make, etc.</p>
+    </div>
+  </div>
+
+  <!-- Save -->
+  <div class="ef-card">
+    <button class="ef-btn ef-btn-primary ef-btn-full" onclick="saveSettings()">Save Settings</button>
+  </div>
+
+  {% endif %}
+
+</div>
+
+<script>
+{% if is_admin %}
+// Load current settings
+async function loadSettings() {
+  const s = await efCall("frappe.client.get", { doctype: "EF Integration Settings", name: "EF Integration Settings" });
+  if (!s) return;
+  document.getElementById("s-twilio-sid").value = s.twilio_account_sid || "";
+  document.getElementById("s-twilio-phone").value = s.twilio_phone_number || "";
+  document.getElementById("s-twilio-dry").checked = !!s.twilio_dry_run;
+  document.getElementById("s-wa-sender").value = s.whatsapp_sender || "";
+  document.getElementById("s-wa-dry").checked = !!s.whatsapp_dry_run;
+  document.getElementById("s-assign-mode").value = s.lead_assignment_mode || "Round Robin";
+  updateDryRunNotice();
+}
+
+function updateDryRunNotice() {
+  const isDry = document.getElementById("s-twilio-dry").checked || document.getElementById("s-wa-dry").checked;
+  document.getElementById("dryrun-notice").style.display = isDry ? "block" : "none";
+}
+
+async function saveSettings() {
+  const doc = {
+    doctype: "EF Integration Settings",
+    name: "EF Integration Settings",
+    twilio_account_sid: document.getElementById("s-twilio-sid").value,
+    twilio_phone_number: document.getElementById("s-twilio-phone").value,
+    twilio_dry_run: document.getElementById("s-twilio-dry").checked ? 1 : 0,
+    whatsapp_sender: document.getElementById("s-wa-sender").value,
+    whatsapp_dry_run: document.getElementById("s-wa-dry").checked ? 1 : 0,
+    lead_assignment_mode: document.getElementById("s-assign-mode").value,
+  };
+  const token = document.getElementById("s-twilio-token").value;
+  if (token) doc.twilio_auth_token = token;
+  const secret = document.getElementById("s-webhook-secret").value;
+  if (secret) doc.webhook_secret = secret;
+
+  await efCall("frappe.client.save", { doc });
+  efToast("✅ Settings saved!", "success");
+}
+
+function copyWebhook() {
+  const url = document.getElementById("webhook-url").textContent;
+  navigator.clipboard.writeText(url).then(() => efToast("Webhook URL copied!", "success"));
+}
+
+loadSettings();
+{% endif %}
+</script>
+
+{% endcall %}

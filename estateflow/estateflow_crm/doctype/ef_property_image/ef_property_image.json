@@ -1,0 +1,19 @@
+{
+ "actions": [],
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "fields": [
+  {"fieldname": "image", "fieldtype": "Attach Image", "label": "Image", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "caption", "fieldtype": "Data", "label": "Caption", "in_list_view": 1},
+  {"fieldname": "is_primary", "fieldtype": "Check", "label": "Primary Image", "in_list_view": 1}
+ ],
+ "istable": 1,
+ "module": "EstateFlow CRM",
+ "name": "EF Property Image",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

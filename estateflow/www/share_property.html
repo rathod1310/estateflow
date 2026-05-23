@@ -1,0 +1,96 @@
+---
+title: Property Details
+no_cache: 1
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#267a5a"/>
+  <title>{{ prop.title if prop else "Property" }} · EstateFlow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/assets/estateflow/css/estateflow.css"/>
+  <style>
+    body { background: #f8fafc; }
+    .share-container { max-width: 480px; margin: 0 auto; padding: 24px 16px 48px; }
+    .share-brand { display:flex; align-items:center; gap:8px; margin-bottom:24px; }
+    .share-brand-icon { width:32px; height:32px; background:linear-gradient(135deg,#267a5a,#57b38d); border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:12px; }
+    .share-brand-name { font-weight:700; color:#267a5a; font-size:16px; }
+    .share-hero { background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 2px 16px rgba(0,0,0,.08); margin-bottom:16px; }
+    .share-img { width:100%; height:220px; object-fit:cover; background:#f0f9f4; display:flex; align-items:center; justify-content:center; font-size:64px; }
+    .share-img-gallery { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+    .share-img-gallery img { width:100%; height:110px; object-fit:cover; }
+    .share-body { padding:20px; }
+    .share-title { font-size:20px; font-weight:800; color:#0f172a; margin:0 0 4px; }
+    .share-loc { color:#64748b; font-size:14px; margin:0 0 12px; }
+    .share-price { font-size:24px; font-weight:800; color:#267a5a; margin:0 0 16px; }
+    .share-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(80px,1fr)); gap:8px; margin-bottom:16px; }
+    .share-stat { background:#f0f9f4; border-radius:12px; padding:10px; text-align:center; }
+    .share-stat-val { font-size:18px; font-weight:700; color:#0f172a; }
+    .share-stat-lbl { font-size:11px; color:#64748b; margin-top:2px; }
+    .share-desc { color:#334155; font-size:14px; line-height:1.6; margin-bottom:16px; }
+    .share-amenities { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+    .share-amenity { background:#f0f9f4; color:#267a5a; border-radius:100px; padding:4px 12px; font-size:12px; font-weight:600; }
+    .share-cta { background:linear-gradient(135deg,#267a5a,#359971); color:#fff; border:none; width:100%; padding:16px; border-radius:16px; font-size:15px; font-weight:700; cursor:pointer; margin-top:8px; }
+    .share-footer { text-align:center; color:#94a3b8; font-size:12px; margin-top:24px; }
+  </style>
+</head>
+<body>
+<div class="share-container">
+  <div class="share-brand">
+    <div class="share-brand-icon">EF</div>
+    <span class="share-brand-name">EstateFlow CRM</span>
+  </div>
+
+  {% if not prop %}
+  <div class="ef-card"><p style="text-align:center;color:#64748b">Property not found or no longer available.</p></div>
+  {% else %}
+
+  <div class="share-hero">
+    {% if prop.images %}
+    <div class="share-img-gallery">
+      {% for img in prop.images[:2] %}
+      <img src="{{ img.image }}" alt="{{ prop.title }}"/>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="share-img">🏠</div>
+    {% endif %}
+
+    <div class="share-body">
+      <h1 class="share-title">{{ prop.title }}</h1>
+      <p class="share-loc">📍 {{ prop.location }}{% if prop.preferred_area %}, {{ prop.preferred_area }}{% endif %}</p>
+      <p class="share-price">{{ formatted_price }}</p>
+
+      <div class="share-stats">
+        {% if prop.bedrooms %}<div class="share-stat"><div class="share-stat-val">{{ prop.bedrooms }}</div><div class="share-stat-lbl">Bedrooms</div></div>{% endif %}
+        {% if prop.bathrooms %}<div class="share-stat"><div class="share-stat-val">{{ prop.bathrooms }}</div><div class="share-stat-lbl">Bathrooms</div></div>{% endif %}
+        {% if prop.size_sqft %}<div class="share-stat"><div class="share-stat-val">{{ prop.size_sqft | int }}</div><div class="share-stat-lbl">Sq Ft</div></div>{% endif %}
+        {% if prop.floor %}<div class="share-stat"><div class="share-stat-val">{{ prop.floor }}</div><div class="share-stat-lbl">Floor</div></div>{% endif %}
+      </div>
+
+      {% if prop.furnishing_status %}<p style="color:#64748b;font-size:13px;margin-bottom:12px">🪑 {{ prop.furnishing_status }}{% if prop.developer_name %} · 🏗️ {{ prop.developer_name }}{% endif %}</p>{% endif %}
+
+      {% if prop.description %}<p class="share-desc">{{ prop.description | striptags | truncate(300) }}</p>{% endif %}
+
+      {% if amenities %}
+      <div class="share-amenities">
+        {% for a in amenities %}<span class="share-amenity">✓ {{ a }}</span>{% endfor %}
+      </div>
+      {% endif %}
+
+      <a href="tel:" class="share-cta" onclick="return false" style="display:block;text-align:center;text-decoration:none">
+        📞 Enquire Now
+      </a>
+    </div>
+  </div>
+
+  <div class="share-footer">
+    Shared via EstateFlow CRM · {{ prop.availability_status }}
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>

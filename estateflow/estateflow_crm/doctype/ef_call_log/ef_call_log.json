@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "autoname": "EF-CALL-.#####",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "lead", "lead_name_display", "agent", "col_break_1",
+  "call_status", "call_sid", "conference_sid",
+  "timing_section",
+  "started_at", "ended_at", "duration_seconds",
+  "outcome_section",
+  "outcome", "recording_url", "dry_run", "notes"
+ ],
+ "fields": [
+  {"fieldname": "lead", "fieldtype": "Link", "label": "Lead", "options": "CRM Lead", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "lead_name_display", "fieldtype": "Data", "label": "Lead Name", "fetch_from": "lead.lead_name", "in_list_view": 1, "read_only": 1},
+  {"fieldname": "agent", "fieldtype": "Link", "label": "Agent", "options": "User", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "col_break_1", "fieldtype": "Column Break"},
+  {"fieldname": "call_status", "fieldtype": "Select", "label": "Status",
+   "options": "Initiated\nRinging\nIn Progress\nCompleted\nNo Answer\nBusy\nFailed\nDry Run",
+   "in_list_view": 1},
+  {"fieldname": "call_sid", "fieldtype": "Data", "label": "Twilio Call SID"},
+  {"fieldname": "conference_sid", "fieldtype": "Data", "label": "Conference SID"},
+  {"fieldname": "timing_section", "fieldtype": "Section Break", "label": "Timing"},
+  {"fieldname": "started_at", "fieldtype": "Datetime", "label": "Started At"},
+  {"fieldname": "ended_at", "fieldtype": "Datetime", "label": "Ended At"},
+  {"fieldname": "duration_seconds", "fieldtype": "Int", "label": "Duration (seconds)"},
+  {"fieldname": "outcome_section", "fieldtype": "Section Break", "label": "Outcome"},
+  {"fieldname": "outcome", "fieldtype": "Select", "label": "Outcome",
+   "options": "\nConnected\nNot Answered\nBusy\nCallback Requested\nNot Interested\nInterested"},
+  {"fieldname": "recording_url", "fieldtype": "Data", "label": "Recording URL"},
+  {"fieldname": "dry_run", "fieldtype": "Check", "label": "Dry Run (Simulated)"},
+  {"fieldname": "notes", "fieldtype": "Small Text", "label": "Notes"}
+ ],
+ "module": "EstateFlow CRM",
+ "name": "EF Call Log",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "Sales User", "read": 1, "write": 1, "create": 1},
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1}
+ ],
+ "sort_field": "started_at",
+ "sort_order": "DESC",
+ "title_field": "lead_name_display",
+ "track_changes": 0
+}

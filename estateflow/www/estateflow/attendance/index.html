@@ -1,0 +1,193 @@
+---
+title: Attendance
+login_required: 1
+no_cache: 1
+---
+
+{% from "estateflow/templates/includes/ef_shell.html" import ef_shell %}
+
+{% call ef_shell("Attendance", "attendance") %}
+
+<div class="ef-page">
+
+  <!-- My Status Card -->
+  <div class="ef-card ef-attendance-hero" id="att-status-card">
+    <div class="ef-att-avatar">{{ initials }}</div>
+    <div class="ef-att-info">
+      <p class="ef-att-name">{{ full_name }}</p>
+      <p class="ef-att-date">{{ today_display }}</p>
+    </div>
+    <div id="att-status-dot" class="ef-att-dot ef-att-dot-out"></div>
+  </div>
+
+  <!-- Check-in / Check-out -->
+  <div class="ef-card">
+    <div id="att-state">
+      <p class="ef-att-status-text" id="att-status-text">Checking status…</p>
+    </div>
+
+    <div class="ef-att-actions">
+      <button class="ef-btn ef-btn-primary ef-btn-full ef-btn-lg" id="btn-checkin" onclick="doCheckIn()" style="display:none">
+        📍 Check In
+      </button>
+      <button class="ef-btn ef-btn-danger ef-btn-full ef-btn-lg" id="btn-checkout" onclick="doCheckOut()" style="display:none">
+        🏁 Check Out
+      </button>
+    </div>
+
+    <div id="att-location-status" class="ef-att-location"></div>
+
+    <div class="ef-field" style="margin-top:12px">
+      <label class="ef-label">Notes (optional)</label>
+      <textarea id="att-notes" class="ef-input ef-textarea ef-textarea-sm" placeholder="Site visit at XYZ project…"></textarea>
+    </div>
+  </div>
+
+  <!-- Today's record -->
+  <div class="ef-card" id="att-record-card" style="display:none">
+    <h3 class="ef-card-title">Today's Record</h3>
+    <div id="att-record-detail"></div>
+  </div>
+
+  <!-- Team attendance (admin only) -->
+  {% if is_admin %}
+  <div class="ef-card">
+    <div class="ef-section-header">
+      <h3 class="ef-card-title">Team Today</h3>
+      <input type="date" id="att-date-filter" class="ef-input ef-input-sm" value="{{ today }}" onchange="loadTeamAttendance(this.value)"/>
+    </div>
+    <div id="team-att-list">Loading…</div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+let myLat = null, myLng = null;
+let currentStatus = null;
+
+// Get GPS
+function getLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        myLat = pos.coords.latitude;
+        myLng = pos.coords.longitude;
+        document.getElementById("att-location-status").textContent =
+          `📍 Location captured (${myLat.toFixed(4)}, ${myLng.toFixed(4)})`;
+        resolve({ lat: myLat, lng: myLng });
+      },
+      () => {
+        document.getElementById("att-location-status").textContent = "⚠️ Location not available — proceeding without GPS";
+        resolve(null);
+      },
+      { timeout: 8000 }
+    );
+  });
+}
+
+async function loadMyStatus() {
+  const r = await efCall("estateflow.api.attendance.get_my_status");
+  currentStatus = r;
+  const dot = document.getElementById("att-status-dot");
+  const txt = document.getElementById("att-status-text");
+  const btnIn = document.getElementById("btn-checkin");
+  const btnOut = document.getElementById("btn-checkout");
+
+  if (!r || (!r.checked_in && !r.checked_out)) {
+    dot.className = "ef-att-dot ef-att-dot-out";
+    txt.textContent = "Not checked in today";
+    btnIn.style.display = "block";
+    btnOut.style.display = "none";
+  } else if (r.checked_in && !r.checked_out) {
+    dot.className = "ef-att-dot ef-att-dot-in";
+    const ci = r.record?.check_in_time;
+    txt.textContent = `✅ Checked in${ci ? " at " + efTime(ci) : ""}`;
+    btnIn.style.display = "none";
+    btnOut.style.display = "block";
+    showRecord(r.record);
+  } else if (r.checked_out) {
+    dot.className = "ef-att-dot ef-att-dot-done";
+    txt.textContent = `✅ Done for today`;
+    btnIn.style.display = "none";
+    btnOut.style.display = "none";
+    showRecord(r.record);
+  }
+}
+
+function showRecord(rec) {
+  if (!rec) return;
+  const card = document.getElementById("att-record-card");
+  card.style.display = "block";
+  document.getElementById("att-record-detail").innerHTML = `
+    <div class="ef-detail-list">
+      <div class="ef-detail-row"><span class="ef-detail-icon">⬆️</span><span>Check-in: ${efTime(rec.check_in_time) || "—"}</span></div>
+      <div class="ef-detail-row"><span class="ef-detail-icon">⬇️</span><span>Check-out: ${efTime(rec.check_out_time) || "—"}</span></div>
+      <div class="ef-detail-row"><span class="ef-detail-icon">📊</span><span>Status: ${rec.status || "Present"}</span></div>
+    </div>`;
+}
+
+async function doCheckIn() {
+  const btn = document.getElementById("btn-checkin");
+  btn.disabled = true; btn.textContent = "Getting location…";
+  await getLocation();
+  btn.textContent = "Checking in…";
+  const notes = document.getElementById("att-notes").value;
+  const r = await efCall("estateflow.api.attendance.check_in", {
+    latitude: myLat, longitude: myLng, notes: notes || undefined
+  });
+  if (r?.success) {
+    efToast("✅ Checked in successfully!", "success");
+    loadMyStatus();
+  } else {
+    efToast(r?.exc || "Check-in failed", "error");
+  }
+  btn.disabled = false; btn.textContent = "📍 Check In";
+}
+
+async function doCheckOut() {
+  const btn = document.getElementById("btn-checkout");
+  btn.disabled = true; btn.textContent = "Getting location…";
+  await getLocation();
+  btn.textContent = "Checking out…";
+  const notes = document.getElementById("att-notes").value;
+  const r = await efCall("estateflow.api.attendance.check_out", {
+    latitude: myLat, longitude: myLng, notes: notes || undefined
+  });
+  if (r?.success) {
+    efToast("✅ Checked out successfully!", "success");
+    loadMyStatus();
+  } else {
+    efToast(r?.exc || "Check-out failed", "error");
+  }
+  btn.disabled = false; btn.textContent = "🏁 Check Out";
+}
+
+{% if is_admin %}
+async function loadTeamAttendance(date) {
+  const records = await efCall("estateflow.api.attendance.get_team_attendance", { date }) || [];
+  const el = document.getElementById("team-att-list");
+  if (!records.length) { el.innerHTML = efEmpty("No attendance records for this date"); return; }
+  el.innerHTML = records.map(r => `
+    <div class="ef-team-att-row">
+      <div class="ef-att-dot ${r.check_in_time ? (r.check_out_time ? "ef-att-dot-done" : "ef-att-dot-in") : "ef-att-dot-out"}" style="position:relative;margin-right:12px"></div>
+      <div class="ef-team-att-info">
+        <p class="ef-team-att-name">${efEscape(r.full_name || r.employee_user)}</p>
+        <p class="ef-team-att-times">
+          ${r.check_in_time ? "In: " + efTime(r.check_in_time) : "Not checked in"}
+          ${r.check_out_time ? " · Out: " + efTime(r.check_out_time) : ""}
+        </p>
+      </div>
+      <span class="ef-status-badge ef-status-${(r.status||"").toLowerCase()}">${r.status || "—"}</span>
+    </div>`).join("");
+}
+loadTeamAttendance("{{ today }}");
+{% endif %}
+
+// Init
+loadMyStatus();
+getLocation(); // Start GPS early
+</script>
+
+{% endcall %}

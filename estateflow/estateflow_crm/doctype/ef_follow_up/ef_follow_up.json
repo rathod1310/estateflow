@@ -1,0 +1,44 @@
+{
+ "actions": [],
+ "autoname": "EF-FU-.#####",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "lead", "lead_name_display", "agent", "col_break_1",
+  "channel", "template", "status",
+  "message_section",
+  "message",
+  "timing_section",
+  "scheduled_at", "sent_at", "dry_run"
+ ],
+ "fields": [
+  {"fieldname": "lead", "fieldtype": "Link", "label": "Lead", "options": "CRM Lead", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "lead_name_display", "fieldtype": "Data", "label": "Lead Name", "fetch_from": "lead.lead_name", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "agent", "fieldtype": "Link", "label": "Sent By", "options": "User", "in_list_view": 1},
+  {"fieldname": "col_break_1", "fieldtype": "Column Break"},
+  {"fieldname": "channel", "fieldtype": "Select", "label": "Channel",
+   "options": "WhatsApp\nSMS\nEmail\nCall", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "template", "fieldtype": "Link", "label": "Template", "options": "EF Message Template"},
+  {"fieldname": "status", "fieldtype": "Select", "label": "Status",
+   "options": "Pending\nSent\nFailed\nDry Run", "default": "Pending", "in_list_view": 1},
+  {"fieldname": "message_section", "fieldtype": "Section Break", "label": "Message"},
+  {"fieldname": "message", "fieldtype": "Text", "label": "Message Content"},
+  {"fieldname": "timing_section", "fieldtype": "Section Break", "label": "Timing"},
+  {"fieldname": "scheduled_at", "fieldtype": "Datetime", "label": "Scheduled At"},
+  {"fieldname": "sent_at", "fieldtype": "Datetime", "label": "Sent At"},
+  {"fieldname": "dry_run", "fieldtype": "Check", "label": "Dry Run (Simulated)"}
+ ],
+ "module": "EstateFlow CRM",
+ "name": "EF Follow Up",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "Sales User", "read": 1, "write": 1, "create": 1},
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1}
+ ],
+ "sort_field": "scheduled_at",
+ "sort_order": "ASC",
+ "title_field": "lead_name_display",
+ "track_changes": 0
+}

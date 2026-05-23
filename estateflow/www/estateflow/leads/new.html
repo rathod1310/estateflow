@@ -1,0 +1,161 @@
+---
+title: New Lead
+login_required: 1
+no_cache: 1
+---
+
+{% from "estateflow/templates/includes/ef_shell.html" import ef_shell %}
+
+{% call ef_shell("Add Lead", "leads") %}
+
+<div class="ef-page">
+
+  <a href="/estateflow/leads" class="ef-back-link">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Leads
+  </a>
+
+  <div class="ef-page-heading">
+    <h1 class="ef-page-title">Add New Lead</h1>
+    <p class="ef-page-sub">Saved to ERPNext CRM · Auto-assigns agent · Triggers call bridge</p>
+  </div>
+
+  <!-- Contact Info -->
+  <div class="ef-card">
+    <h3 class="ef-card-title">Contact Info</h3>
+    <div class="ef-form-stack">
+      <div class="ef-field">
+        <label class="ef-label">Full Name <span class="ef-req">*</span></label>
+        <input id="f-name" type="text" class="ef-input" placeholder="Rahul Sharma"/>
+      </div>
+      <div class="ef-field">
+        <label class="ef-label">Phone <span class="ef-req">*</span></label>
+        <input id="f-phone" type="tel" class="ef-input" placeholder="+919999999999"/>
+      </div>
+      <div class="ef-field">
+        <label class="ef-label">Email</label>
+        <input id="f-email" type="email" class="ef-input" placeholder="rahul@example.com"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property Interest -->
+  <div class="ef-card">
+    <h3 class="ef-card-title">Property Interest</h3>
+    <div class="ef-form-stack">
+      <div class="ef-field">
+        <label class="ef-label">Lead Source</label>
+        <select id="f-source" class="ef-select">
+          <option>36 Acre</option><option>MagicBricks</option>
+          <option>Housing.com</option><option>Facebook</option>
+          <option>Instagram</option><option>Website</option>
+          <option>Referral</option><option selected>Manual</option><option>Other</option>
+        </select>
+      </div>
+      <div class="ef-field">
+        <label class="ef-label">Property Type</label>
+        <select id="f-type" class="ef-select">
+          <option value="">Select…</option>
+          <option>Apartment</option><option>Villa</option>
+          <option>Plot</option><option>Commercial</option><option>Rental</option>
+        </select>
+      </div>
+      <div class="ef-field">
+        <label class="ef-label">Preferred Location</label>
+        <input id="f-location" type="text" class="ef-input" placeholder="Gurgaon, Sector 62…"/>
+      </div>
+      <div class="ef-field-row">
+        <div class="ef-field">
+          <label class="ef-label">Budget Min (₹)</label>
+          <input id="f-bmin" type="number" class="ef-input" placeholder="7500000"/>
+        </div>
+        <div class="ef-field">
+          <label class="ef-label">Budget Max (₹)</label>
+          <input id="f-bmax" type="number" class="ef-input" placeholder="12000000"/>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Temperature + Notes -->
+  <div class="ef-card">
+    <h3 class="ef-card-title">Lead Quality</h3>
+    <div class="ef-form-stack">
+      <div class="ef-field">
+        <label class="ef-label">Temperature</label>
+        <div class="ef-toggle-row">
+          <button class="ef-toggle" data-temp="Cold" onclick="setTemp(this,'Cold')">🧊 Cold</button>
+          <button class="ef-toggle ef-toggle-active" data-temp="Warm" onclick="setTemp(this,'Warm')">☀️ Warm</button>
+          <button class="ef-toggle" data-temp="Hot" onclick="setTemp(this,'Hot')">🔥 Hot</button>
+        </div>
+      </div>
+      <div class="ef-field">
+        <label class="ef-label">Notes</label>
+        <textarea id="f-notes" class="ef-input ef-textarea" placeholder="Looking for 3BHK near Golf Course Road…"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <div class="ef-card ef-submit-card">
+    <button class="ef-btn ef-btn-primary ef-btn-full ef-btn-lg" id="submit-btn" onclick="submitLead()">
+      Create Lead &amp; Trigger Call Bridge
+    </button>
+    <p class="ef-submit-hint">Lead is saved in ERPNext and auto-assigned to the next available agent</p>
+  </div>
+
+</div>
+
+<script>
+let selectedTemp = "Warm";
+
+function setTemp(btn, temp) {
+  document.querySelectorAll("[data-temp]").forEach(b => b.classList.remove("ef-toggle-active"));
+  btn.classList.add("ef-toggle-active");
+  selectedTemp = temp;
+}
+
+async function submitLead() {
+  const name = document.getElementById("f-name").value.trim();
+  const phone = document.getElementById("f-phone").value.trim();
+  if (!name) { efToast("Full name is required", "error"); return; }
+  if (!phone) { efToast("Phone number is required", "error"); return; }
+
+  const btn = document.getElementById("submit-btn");
+  btn.disabled = true;
+  btn.textContent = "Creating lead…";
+
+  const payload = {
+    fullName: name,
+    phone: phone,
+    email: document.getElementById("f-email").value.trim() || undefined,
+    source: document.getElementById("f-source").value,
+    propertyType: document.getElementById("f-type").value || undefined,
+    budgetMin: parseInt(document.getElementById("f-bmin").value) || undefined,
+    budgetMax: parseInt(document.getElementById("f-bmax").value) || undefined,
+    preferredLocation: document.getElementById("f-location").value.trim() || undefined,
+    notes: document.getElementById("f-notes").value.trim() || undefined,
+  };
+
+  try {
+    const res = await frappe.call({
+      method: "estateflow.api.leads.intake_webhook",
+      args: payload,
+    });
+    const data = res.message;
+    efToast(
+      data.call_dry_run
+        ? `✅ Lead created! [DRY-RUN] Call bridge simulated`
+        : `✅ Lead "${name}" created & call triggered`,
+      "success"
+    );
+    setTimeout(() => { window.location.href = "/estateflow/leads"; }, 1200);
+  } catch (e) {
+    efToast(e.message || "Failed to create lead", "error");
+    btn.disabled = false;
+    btn.textContent = "Create Lead & Trigger Call Bridge";
+  }
+}
+</script>
+
+{% endcall %}
